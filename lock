@@ -1,0 +1,52 @@
+#!/usr/bin/env python3
+
+import subprocess
+import sys
+
+def failed(code):
+    return code != 0
+
+def command(argv):
+    try:
+        return argv[1]
+    except IndexError:
+        return ''
+
+def run(*cmd_list):
+    completed = subprocess.run(cmd_list, text=True, capture_output=True)
+    output = completed.stdout
+    err_output = completed.stderr
+    exit_code = completed.returncode
+    if failed(exit_code):
+        return err_output, exit_code
+    return output, exit_code
+
+def git_commit(message=''):
+    return run('git', 'commit', '-m', message, "--amend")
+
+if __name__ == '__main__':
+    cmd = command(sys.argv)
+
+    if cmd == 'up':
+        output, code = run('git', 'push', '-f')
+        if failed(code):
+            print('Failed to forcefully push the repo:', output)
+            sys.exit(1)
+        print('Pushed all changes up')
+        sys.exit(0)
+
+    if cmd == 'all':
+        output, code = run('git', 'add', '-A')
+        if failed(code):
+            print('Failed to add all files:', output)
+            sys.exit(1)
+
+    output, code = git_commit('vault')
+    if failed(code):
+        print('Failed to commit:', output)
+        sys.exit(1)
+
+    if cmd == 'all':
+        print("Locked all files")
+    else:
+        print("Locked staged files")
